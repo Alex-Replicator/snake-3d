@@ -23,9 +23,37 @@ jobs:
           
       - name: Install dependencies
         run: npm install
+      
+      - name: Create Vite config if not exists
+        run: |
+          if [ ! -f "vite.config.js" ]; then
+            echo "Creating vite.config.js with base '/snake-3d/'"
+            echo "import { defineConfig } from 'vite';
+            
+            export default defineConfig({
+              base: '/snake-3d/',
+              build: {
+                outDir: 'dist'
+              }
+            });" > vite.config.js
+          else
+            echo "vite.config.js already exists, making sure it has the correct base path"
+            sed -i -e 's|base: ".*"|base: "/snake-3d/"|g' vite.config.js
+            grep -q "base:" vite.config.js || sed -i '/defineConfig/a\  base: "/snake-3d/",' vite.config.js
+          fi
+          cat vite.config.js
         
       - name: Build
         run: npm run build
+      
+      - name: Check build output
+        run: |
+          echo "=== Build output ==="
+          ls -la dist
+          if [ ! -f "dist/index.html" ]; then
+            echo "ERROR: dist/index.html not found!"
+            exit 1
+          fi
         
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
