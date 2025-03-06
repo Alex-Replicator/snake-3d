@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake 3D</title>
+    <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+    <meta name="description" content="3D версия классической игры Змейка">
+    <meta name="keywords" content="змейка, 3D, игра, three.js, snake">
+  <script type="module" crossorigin src="/assets/main-TD9_FRHI.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/main-D-HLX42d.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="game-canvas"></div>
+        
+        <div id="ui-container">
+            <div id="menu" class="ui-element">
+                <img src="/images/logo.svg" alt="Snake 3D Logo" class="logo">
+                <h1>SNAKE 3D</h1>
+                <button id="start-button">Начать игру</button>
+                <button id="help-button">Управление</button>
+            </div>
+            
+            <div id="hud" class="ui-element hidden">
+                <div id="score">Счёт: <span id="score-value">0</span></div>
+            </div>
+            
+            <div id="game-over" class="ui-element hidden">
+                <h2>Игра окончена</h2>
+                <div id="final-score">Счёт: <span id="final-score-value">0</span></div>
+                <button id="restart-button">Начать заново</button>
+                <button id="menu-button">Меню</button>
+            </div>
+            
+            <div id="help" class="ui-element hidden">
+                <h2>Управление</h2>
+                <ul>
+                    <li>Стрелки: движение по осям X и Z</li>
+                    <li>W/S или Ц/Ы: движение вверх/вниз по оси Y</li>
+                    <li>Пробел: пауза</li>
+                    <li>ESC: меню</li>
+                    <li>Enter: начать заново после проигрыша</li>
+                </ul>
+                <button id="back-button">Назад</button>
+            </div>
+        </div>
+    </div>
+    
+</body>
+</html> 
