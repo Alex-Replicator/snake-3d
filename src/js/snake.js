@@ -16,9 +16,9 @@ export class Snake {
         // Массив сегментов змейки (голова - первый элемент)
         this.segments = [];
         
-        // Создание материала для змейки
-        this.material = new THREE.MeshLambertMaterial({ color: 0x4CAF50 });
-        this.headMaterial = new THREE.MeshLambertMaterial({ color: 0x2E7D32 });
+        // Создание материала для змейки (красный вместо зеленого)
+        this.material = new THREE.MeshLambertMaterial({ color: 0xF44336 });
+        this.headMaterial = new THREE.MeshLambertMaterial({ color: 0xD32F2F });
         
         // Создание геометрии для сегментов
         this.geometry = new THREE.BoxGeometry(this.size, this.size, this.size);

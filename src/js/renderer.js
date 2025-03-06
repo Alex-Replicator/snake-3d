@@ -52,7 +52,7 @@ export function createPlayField() {
     // Прозрачная коробка для игрового поля
     const geometry = new THREE.BoxGeometry(size * 2, size * 2, size * 2);
     const edgesGeometry = new THREE.EdgesGeometry(geometry);
-    const material = new THREE.LineBasicMaterial({ color: 0x4CAF50, opacity: 0.5, transparent: true });
+    const material = new THREE.LineBasicMaterial({ color: 0xF44336, opacity: 0.5, transparent: true });
     
     // Создание сетки для визуализации игрового поля
     const grid = new THREE.LineSegments(edgesGeometry, material);
@@ -64,7 +64,7 @@ export function createPlayField() {
     // Прозрачные стены поля
     const walls = [];
     const wallMaterial = new THREE.MeshBasicMaterial({ 
-        color: 0x4CAF50, 
+        color: 0xF44336, 
         opacity: 0.1, 
         transparent: true,
         side: THREE.DoubleSide

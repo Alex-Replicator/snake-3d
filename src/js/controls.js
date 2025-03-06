@@ -24,14 +24,18 @@ export function setupControls(snake, pauseCallback, menuCallback) {
                 event.preventDefault();
                 break;
                 
-            // Управление по оси Y (W/S)
+            // Управление по оси Y (W/S и Ц/Ы в русской раскладке)
             case 'w':
             case 'W':
+            case 'ц':
+            case 'Ц':
                 snake.setDirection(0, 1, 0);
                 event.preventDefault();
                 break;
             case 's':
             case 'S':
+            case 'ы':
+            case 'Ы':
                 snake.setDirection(0, -1, 0);
                 event.preventDefault();
                 break;
@@ -45,6 +49,17 @@ export function setupControls(snake, pauseCallback, menuCallback) {
             // Меню (ESC)
             case 'Escape':
                 menuCallback();
+                event.preventDefault();
+                break;
+                
+            // Начать заново после проигрыша (Enter)
+            case 'Enter':
+                // Проверяем, виден ли экран Game Over
+                const gameOverScreen = document.getElementById('game-over');
+                if (gameOverScreen && !gameOverScreen.classList.contains('hidden')) {
+                    // Нажимаем кнопку "Начать заново"
+                    document.getElementById('restart-button').click();
+                }
                 event.preventDefault();
                 break;
         }
