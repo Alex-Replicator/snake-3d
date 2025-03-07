@@ -47,7 +47,7 @@ export function createLights() {
 // Создание игрового поля
 export function createPlayField() {
     // Размер игрового поля
-    const size = 10;
+    const size = 40;
     
     // Прозрачная коробка для игрового поля
     const geometry = new THREE.BoxGeometry(size * 2, size * 2, size * 2);

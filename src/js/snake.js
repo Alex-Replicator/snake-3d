@@ -6,12 +6,17 @@ export class Snake {
         // Настройки змейки
         this.size = 1; // Размер сегмента змейки
         this.initialSize = 3; // Начальная длина змейки
-        this.speed = 5; // Скорость движения (сегментов в секунду)
+        this.speed = 2; // Скорость движения
         this.lastUpdateTime = 0; // Время последнего обновления
+        this.movementProgress = 0; // Прогресс движения для плавной анимации
         
         // Направление движения (x, y, z)
         this.direction = new THREE.Vector3(1, 0, 0);
         this.nextDirection = new THREE.Vector3(1, 0, 0);
+        
+        // Базовые векторы для вычисления относительных направлений
+        this.up = new THREE.Vector3(0, 1, 0);
+        this.right = new THREE.Vector3(0, 0, 1);
         
         // Массив сегментов змейки (голова - первый элемент)
         this.segments = [];
@@ -50,17 +55,85 @@ export class Snake {
         }
     }
     
+    // Изменение направления движения относительно текущего направления
+    changeRelativeDirection(direction) {
+        // Создаем вектор "вперед" на основе текущего направления
+        const forward = this.direction.clone().normalize();
+        
+        // Создаем вектор "вверх" (по умолчанию глобальный вверх)
+        const up = new THREE.Vector3(0, 1, 0);
+        
+        // Если движемся вертикально, используем Z как базу
+        if (Math.abs(forward.y) > 0.9) {
+            up.set(0, 0, Math.sign(forward.y));
+        }
+        
+        // Вычисляем вектор "вправо"
+        const right = up.clone().cross(forward).normalize();
+        
+        // Обновляем "вверх" чтобы он был точно перпендикулярен
+        up.crossVectors(forward, right).normalize();
+        
+        let newDirection = null;
+        
+        switch(direction) {
+            case 'up':
+                newDirection = up;
+                break;
+            case 'down':
+                newDirection = up.clone().multiplyScalar(-1);
+                break;
+            case 'left':
+                newDirection = right.clone().multiplyScalar(-1);
+                break;
+            case 'right':
+                newDirection = right;
+                break;
+            case 'rotateLeft':
+                newDirection = forward.clone().cross(up).normalize().multiplyScalar(-1);
+                break;
+            case 'rotateRight':
+                newDirection = forward.clone().cross(up).normalize();
+                break;
+        }
+        
+        if (newDirection) {
+            // Округляем компоненты вектора до целых чисел
+            newDirection.x = Math.round(newDirection.x);
+            newDirection.y = Math.round(newDirection.y);
+            newDirection.z = Math.round(newDirection.z);
+            
+            // Нормализуем после округления
+            newDirection.normalize();
+            
+            // Проверяем, что новое направление не противоположно текущему
+            if (this.direction.dot(newDirection) !== -1) {
+                this.direction.copy(newDirection);
+                this.nextDirection.copy(newDirection);
+                
+                // Возвращаем угол поворота для синхронизации камеры
+                const angle = Math.atan2(
+                    this.direction.x * forward.z - this.direction.z * forward.x,
+                    this.direction.x * forward.x + this.direction.z * forward.z
+                );
+                return angle;
+            }
+        }
+        return 0;
+    }
+    
     // Обновление позиции змейки
     update() {
         const now = performance.now();
-        const deltaTime = now - this.lastUpdateTime;
+        const deltaTime = (now - this.lastUpdateTime) / 1000; // Переводим в секунды
         
-        // Обновляем с определенной частотой
-        if (deltaTime > 1000 / this.speed) {
+        // Обновляем прогресс движения
+        this.movementProgress += deltaTime * this.speed;
+        
+        // Если достигли следующей позиции
+        if (this.movementProgress >= 1) {
+            this.movementProgress = 0;
             this.lastUpdateTime = now;
-            
-            // Применяем следующее направление
-            this.direction.copy(this.nextDirection);
             
             // Сохраняем предыдущие позиции
             const prevPositions = this.segments.map(segment => 
@@ -70,23 +143,28 @@ export class Snake {
             // Обновляем позицию головы
             const headSegment = this.segments[0];
             headSegment.position.add(this.direction);
-            headSegment.mesh.position.copy(headSegment.position);
             
-            // Обновляем позиции тела (каждый сегмент занимает позицию предыдущего)
+            // Обновляем позиции тела
             for (let i = 1; i < this.segments.length; i++) {
                 this.segments[i].position.copy(prevPositions[i - 1]);
-                this.segments[i].mesh.position.copy(this.segments[i].position);
             }
         }
-    }
-    
-    // Установка нового направления
-    setDirection(x, y, z) {
-        // Проверяем, что новое направление не противоположно текущему
-        const newDirection = new THREE.Vector3(x, y, z);
-        if (this.direction.dot(newDirection) === -1) return;
         
-        this.nextDirection.set(x, y, z);
+        // Плавное обновление позиций мешей
+        for (let i = 0; i < this.segments.length; i++) {
+            const segment = this.segments[i];
+            if (i === 0) {
+                // Для головы - плавное движение к следующей позиции
+                const targetPosition = segment.position.clone().add(this.direction.clone().multiplyScalar(this.movementProgress));
+                segment.mesh.position.copy(targetPosition);
+            } else {
+                // Для остальных сегментов - плавное следование за предыдущим сегментом
+                const prevSegment = this.segments[i - 1];
+                const direction = prevSegment.position.clone().sub(segment.position);
+                const targetPosition = segment.position.clone().add(direction.multiplyScalar(this.movementProgress));
+                segment.mesh.position.copy(targetPosition);
+            }
+        }
     }
     
     // Увеличение змейки (добавление нового сегмента)

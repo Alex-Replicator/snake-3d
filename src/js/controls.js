@@ -1,78 +1,77 @@
+import * as THREE from 'three';
+
 // Настройка управления змейкой
-export function setupControls(snake, pauseCallback, menuCallback, toggleCameraCallback) {
+export function setupControls(snake, pauseCallback, menuCallback, toggleCameraCallback, onRotateCallback) {
     // Сброс существующих обработчиков (если настройка вызывается повторно)
     window.removeEventListener('keydown', handleKeyDown);
     
     // Функция обработчика нажатия клавиш
     function handleKeyDown(event) {
-        switch(event.key) {
-            // Управление по оси X и Z (стрелки)
-            case 'ArrowUp':
-                snake.setDirection(0, 0, -1);
-                event.preventDefault();
-                break;
-            case 'ArrowDown':
-                snake.setDirection(0, 0, 1);
-                event.preventDefault();
-                break;
-            case 'ArrowLeft':
-                snake.setDirection(-1, 0, 0);
-                event.preventDefault();
-                break;
-            case 'ArrowRight':
-                snake.setDirection(1, 0, 0);
-                event.preventDefault();
-                break;
-                
-            // Управление по оси Y (W/S и Ц/Ы в русской раскладке)
+        const key = event.key.toLowerCase();
+        let angle = 0;
+        
+        // Обработка движения
+        switch(key) {
+            // Управление относительно направления головы змейки
             case 'w':
-            case 'W':
             case 'ц':
-            case 'Ц':
-                snake.setDirection(0, 1, 0);
+                angle = snake.changeRelativeDirection('up');
                 event.preventDefault();
                 break;
             case 's':
-            case 'S':
             case 'ы':
-            case 'Ы':
-                snake.setDirection(0, -1, 0);
+                angle = snake.changeRelativeDirection('down');
                 event.preventDefault();
                 break;
-                
-            // Пауза (пробел)
-            case ' ':
+            case 'a':
+            case 'ф':
+                angle = snake.changeRelativeDirection('right');
+                event.preventDefault();
+                break;
+            case 'd':
+            case 'в':
+                angle = snake.changeRelativeDirection('left');
+                event.preventDefault();
+                break;
+            case 'q':
+            case 'й':
+                angle = snake.changeRelativeDirection('rotateLeft');
+                event.preventDefault();
+                break;
+            case 'e':
+            case 'у':
+                angle = snake.changeRelativeDirection('rotateRight');
+                event.preventDefault();
+                break;
+            
+            // Остальные клавиши
+            case ' ': // Пауза
                 pauseCallback();
                 event.preventDefault();
                 break;
-                
-            // Меню (ESC)
-            case 'Escape':
+            case 'escape': // Меню
                 menuCallback();
                 event.preventDefault();
                 break;
-                
-            // Переключение режима камеры (C)
-            case 'c':
-            case 'C':
+            case 'c': // Переключение камеры
             case 'с':
-            case 'С':
                 if (toggleCameraCallback) {
                     toggleCameraCallback();
                 }
                 event.preventDefault();
                 break;
-                
-            // Начать заново после проигрыша (Enter)
-            case 'Enter':
-                // Проверяем, виден ли экран Game Over
+            case 'enter': // Начать заново
                 const gameOverScreen = document.getElementById('game-over');
                 if (gameOverScreen && !gameOverScreen.classList.contains('hidden')) {
-                    // Нажимаем кнопку "Начать заново"
                     document.getElementById('restart-button').click();
                 }
                 event.preventDefault();
                 break;
+        }
+        
+        // Вызываем callback для синхронизации поворота камеры
+        if (angle !== 0 && onRotateCallback) {
+            onRotateCallback(angle);
         }
     }
     
