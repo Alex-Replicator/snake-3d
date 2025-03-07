@@ -50,6 +50,15 @@ class Game {
         this.cameraOffset = new THREE.Vector3(15, 15, 15);
         this.cameraLerpFactor = 0.05; // Фактор плавности движения камеры
         
+        // Параметры для управления мышью в режиме от первого лица
+        this.mouseControl = {
+            enabled: false,
+            sensitivity: 0.002,
+            yaw: 0,
+            pitch: 0,
+            pitchLimit: Math.PI / 3 // Ограничение угла наклона (60 градусов)
+        };
+        
         // Обработчик изменения размера окна
         window.addEventListener('resize', this.onWindowResize.bind(this));
         
@@ -63,17 +72,20 @@ class Game {
     // Запуск игры
     startGame() {
         // Получаем выбранный режим камеры
-        const cameraModeInputs = document.getElementsByName('camera-mode');
-        for (const input of cameraModeInputs) {
-            if (input.checked) {
-                this.cameraMode = input.value;
-                break;
-            }
+        const selectedOption = document.querySelector('.camera-option.selected');
+        if (selectedOption) {
+            this.cameraMode = selectedOption.dataset.mode;
         }
+        
+        // Обновляем индикатор режима камеры
+        this.updateCameraIndicator();
         
         // Скрываем меню и показываем HUD
         document.getElementById('menu').classList.add('hidden');
         document.getElementById('hud').classList.remove('hidden');
+        
+        // Показываем подсказку для переключения камеры
+        this.showCameraHint();
         
         // Инициализация или сброс состояния игры
         this.score = 0;
@@ -92,7 +104,7 @@ class Game {
         this.food = new Food(this.scene, this.playField);
         
         // Настройка управления
-        setupControls(this.snake, this.pauseGame.bind(this), this.showMenu.bind(this));
+        setupControls(this.snake, this.pauseGame.bind(this), this.showMenu.bind(this), this.toggleCameraMode.bind(this));
         
         // Настройка камеры в зависимости от выбранного режима
         this.setupCamera();
@@ -100,6 +112,9 @@ class Game {
         // Запуск игры
         this.isRunning = true;
         this.isPaused = false;
+        
+        // Включаем или отключаем управление мышью в зависимости от режима
+        this.toggleMouseControl();
     }
     
     // Настройка камеры в зависимости от выбранного режима
@@ -116,6 +131,10 @@ class Game {
             
             // Отключаем OrbitControls в режиме от первого лица
             this.controls.enabled = false;
+            
+            // Сбрасываем углы поворота камеры
+            this.mouseControl.yaw = 0;
+            this.mouseControl.pitch = 0;
         } else {
             // Режим от третьего лица - камера снаружи
             this.camera.position.set(15, 15, 15);
@@ -127,6 +146,97 @@ class Game {
         }
     }
     
+    // Переключение режима камеры во время игры
+    toggleCameraMode() {
+        // Меняем режим камеры
+        this.cameraMode = this.cameraMode === 'thirdPerson' ? 'firstPerson' : 'thirdPerson';
+        
+        // Обновляем индикатор режима камеры
+        this.updateCameraIndicator();
+        
+        // Настраиваем камеру для нового режима
+        this.setupCamera();
+        
+        // Включаем или отключаем управление мышью в зависимости от режима
+        this.toggleMouseControl();
+        
+        // Показываем подсказку для переключения камеры
+        this.showCameraHint();
+    }
+    
+    // Обновление индикатора режима камеры
+    updateCameraIndicator() {
+        const indicator = document.getElementById('camera-mode-name');
+        const iconSvg = document.querySelector('#camera-indicator .camera-icon svg');
+        
+        if (this.cameraMode === 'firstPerson') {
+            indicator.textContent = 'От первого лица';
+            // Обновляем SVG для режима от первого лица
+            iconSvg.innerHTML = `
+                <path fill="currentColor" d="M12,5C7.58,5,4,8.58,4,13v6h16v-6C20,8.58,16.42,5,12,5z M16.5,16C15.67,16,15,15.33,15,14.5 c0-0.83,0.67-1.5,1.5-1.5S18,13.67,18,14.5C18,15.33,17.33,16,16.5,16z"/>
+                <path fill="currentColor" d="M12,2C11.45,2,11,2.45,11,3v4h2V3C13,2.45,12.55,2,12,2z"/>
+            `;
+        } else {
+            indicator.textContent = 'Вид снаружи';
+            // Обновляем SVG для режима от третьего лица
+            iconSvg.innerHTML = `
+                <path fill="currentColor" d="M12,3c-4.97,0-9,4.03-9,9s4.03,9,9,9s9-4.03,9-9S16.97,3,12,3z M12,19c-3.86,0-7-3.14-7-7s3.14-7,7-7s7,3.14,7,7 S15.86,19,12,19z"/>
+                <path fill="currentColor" d="M12,9c-1.66,0-3,1.34-3,3s1.34,3,3,3s3-1.34,3-3S13.66,9,12,9z"/>
+            `;
+        }
+    }
+    
+    // Показать подсказку для переключения камеры
+    showCameraHint() {
+        const hint = document.getElementById('camera-mode-hint');
+        hint.classList.remove('fade-out');
+        
+        // Скрываем подсказку через 3 секунды
+        setTimeout(() => {
+            hint.classList.add('fade-out');
+        }, 3000);
+    }
+    
+    // Включение/отключение управления мышью
+    toggleMouseControl() {
+        // Включаем управление мышью только в режиме от первого лица
+        this.mouseControl.enabled = (this.cameraMode === 'firstPerson');
+        
+        if (this.mouseControl.enabled) {
+            // Блокируем указатель и добавляем обработчик движения мыши
+            this.renderer.domElement.requestPointerLock = this.renderer.domElement.requestPointerLock || 
+                                                         this.renderer.domElement.mozRequestPointerLock;
+            this.renderer.domElement.requestPointerLock();
+            
+            document.addEventListener('mousemove', this.handleMouseMove.bind(this));
+        } else {
+            // Освобождаем указатель и удаляем обработчик движения мыши
+            document.exitPointerLock = document.exitPointerLock || document.mozExitPointerLock;
+            document.exitPointerLock();
+            
+            document.removeEventListener('mousemove', this.handleMouseMove.bind(this));
+        }
+    }
+    
+    // Обработчик движения мыши для режима от первого лица
+    handleMouseMove(event) {
+        if (!this.mouseControl.enabled || !this.isRunning || this.isPaused) return;
+        
+        // Получаем движение мыши
+        const movementX = event.movementX || event.mozMovementX || 0;
+        const movementY = event.movementY || event.mozMovementY || 0;
+        
+        // Обновляем углы поворота камеры
+        this.mouseControl.yaw -= movementX * this.mouseControl.sensitivity;
+        this.mouseControl.pitch -= movementY * this.mouseControl.sensitivity;
+        
+        // Ограничиваем угол наклона (pitch)
+        this.mouseControl.pitch = Math.max(
+            -this.mouseControl.pitchLimit,
+            Math.min(this.mouseControl.pitchLimit, this.mouseControl.pitch)
+        );
+    }
+    
     // Пауза игры
     pauseGame() {
         this.isPaused = !this.isPaused;
@@ -135,6 +245,13 @@ class Game {
     // Показать меню
     showMenu() {
         this.isRunning = false;
+        
+        // Отключаем управление мышью при выходе в меню
+        if (this.mouseControl.enabled) {
+            document.exitPointerLock = document.exitPointerLock || document.mozExitPointerLock;
+            document.exitPointerLock();
+        }
+        
         document.getElementById('hud').classList.add('hidden');
         document.getElementById('menu').classList.remove('hidden');
     }
@@ -142,6 +259,13 @@ class Game {
     // Конец игры
     gameOver() {
         this.isRunning = false;
+        
+        // Отключаем управление мышью при окончании игры
+        if (this.mouseControl.enabled) {
+            document.exitPointerLock = document.exitPointerLock || document.mozExitPointerLock;
+            document.exitPointerLock();
+        }
+        
         document.getElementById('hud').classList.add('hidden');
         document.getElementById('game-over').classList.remove('hidden');
         document.getElementById('final-score-value').textContent = this.score;
@@ -211,10 +335,49 @@ class Game {
             headPosition.y += 0.5;
             this.camera.position.copy(headPosition);
             
-            // Направление взгляда совпадает с направлением движения
-            const lookAtPosition = headPosition.clone();
-            lookAtPosition.add(this.snake.direction.clone().multiplyScalar(2));
-            this.camera.lookAt(lookAtPosition);
+            // Применяем углы поворота камеры от управления мышью
+            if (this.mouseControl.enabled) {
+                // Создаем кватернион для поворота камеры
+                const quaternion = new THREE.Quaternion()
+                    .setFromEuler(new THREE.Euler(
+                        this.mouseControl.pitch,
+                        this.mouseControl.yaw,
+                        0,
+                        'YXZ'
+                    ));
+                
+                // Применяем поворот к направлению взгляда
+                const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(quaternion);
+                
+                // Устанавливаем направление взгляда
+                const lookAtPosition = this.camera.position.clone().add(direction);
+                this.camera.lookAt(lookAtPosition);
+                
+                // Передаем направление взгляда для управления змейкой
+                if (Math.abs(direction.x) > 0.5 || Math.abs(direction.z) > 0.5) {
+                    // Нормализуем направление для горизонтальной плоскости
+                    const horizontalDir = new THREE.Vector2(direction.x, direction.z).normalize();
+                    
+                    // Определяем основное направление движения
+                    let newDirection;
+                    if (Math.abs(horizontalDir.x) > Math.abs(horizontalDir.y)) {
+                        newDirection = new THREE.Vector3(Math.sign(horizontalDir.x), 0, 0);
+                    } else {
+                        newDirection = new THREE.Vector3(0, 0, Math.sign(horizontalDir.y));
+                    }
+                    
+                    // Обновляем направление змейки, если оно изменилось и не противоположно текущему
+                    if (!this.snake.direction.equals(newDirection) && 
+                        !this.snake.direction.clone().multiplyScalar(-1).equals(newDirection)) {
+                        this.snake.changeDirection(newDirection);
+                    }
+                }
+            } else {
+                // Стандартное поведение - направление взгляда совпадает с направлением движения
+                const lookAtPosition = headPosition.clone();
+                lookAtPosition.add(this.snake.direction.clone().multiplyScalar(2));
+                this.camera.lookAt(lookAtPosition);
+            }
             
             // Добавляем небольшое покачивание камеры для эффекта движения
             const time = Date.now() * 0.001;
@@ -247,6 +410,22 @@ class Game {
     
     // Привязка элементов интерфейса к обработчикам событий
     bindUIElements() {
+        // Привязка выбора режима камеры в меню
+        const cameraOptions = document.querySelectorAll('.camera-option');
+        cameraOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                // Удаляем класс selected у всех опций
+                cameraOptions.forEach(opt => opt.classList.remove('selected'));
+                // Добавляем класс selected к выбранной опции
+                option.classList.add('selected');
+                // Выбираем соответствующий радио-кнопку
+                const radioInput = option.querySelector('input[type="radio"]');
+                if (radioInput) {
+                    radioInput.checked = true;
+                }
+            });
+        });
+        
         // Кнопки меню
         document.getElementById('start-button').addEventListener('click', () => this.startGame());
         document.getElementById('help-button').addEventListener('click', () => {

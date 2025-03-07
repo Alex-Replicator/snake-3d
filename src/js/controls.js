@@ -1,5 +1,5 @@
 // Настройка управления змейкой
-export function setupControls(snake, pauseCallback, menuCallback) {
+export function setupControls(snake, pauseCallback, menuCallback, toggleCameraCallback) {
     // Сброс существующих обработчиков (если настройка вызывается повторно)
     window.removeEventListener('keydown', handleKeyDown);
     
@@ -49,6 +49,17 @@ export function setupControls(snake, pauseCallback, menuCallback) {
             // Меню (ESC)
             case 'Escape':
                 menuCallback();
+                event.preventDefault();
+                break;
+                
+            // Переключение режима камеры (C)
+            case 'c':
+            case 'C':
+            case 'с':
+            case 'С':
+                if (toggleCameraCallback) {
+                    toggleCameraCallback();
+                }
                 event.preventDefault();
                 break;
                 
